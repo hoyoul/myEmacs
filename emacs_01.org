@@ -1,0 +1,79 @@
+* Emacs From Scratch #1
+
+* simple UI
+** emacs -q -l ./.init.el
+ emacs -q -l ./.init.el  (-l옵션은 init.el을 load하는 option이다.)
+
+** (setq inhibit-startup-message t)
+시작할때  emacs에 대한 설명을 하고 link달려있는 startup page가 있다. 이것을 inhibit(금지) 하겠다는 뜻, 안 사용한다는 것이다. blank page를 하겠다는 의미.
+
+** (scroll-bar-mode -1)        ; Disable visible scrollbar
+scrollbar 도 사용하지 않겠다.
+** (tool-bar-mode -1)          ; Disable the toolbar
+toolbar도 사용하지 않겠다.
+** (tooltip-mode -1)           ; Disable tooltips
+tooltip도 사용하지 않겠다.
+** (set-fringe-mode 10)        ; Give some breathing room
+fringe-mode는 들여쓰기의 단위다. 왼쪽 여백을 뜻한다. 기본은  8로 되어 있다.
+** (menu-bar-mode -1)            ; Disable the menu bar
+menubar도 사용하지 않겠다.
+** (setq visible-bell t)
+ 소리대신 flash를 터뜨린다. 예를 들어서 readmode인 파일에서 쓰기를 하는경우
+
+* help
+help는 C-h로 실행하고 variable이나 function에 대한 설명(document)를 볼 수 있다.
+C-h describe function or variable을 사용한다.
+
+* execute lisp
+lisp code를 buffer에서 실행할 때에는 C-x e로 문장을 해석할수도 있고, M-x eval-buffer로 buffer전체를 해석할 수 있다.
+
+* setting Font, theme
+** (set-face-attribute 'default nil :font "Fira Code Retina" :height 280)
+Fira code retina로 font를 설정한다. fira code font에는 여러 emoji를 가지고 있는 fixed point font.
+** (load-theme 'tango-dark)
+theme를 설정하고 실행하면 변경된 theme를 확인할 수 있다.
+* Packages
+emacs에서 사용하는 package를 저장하고 있는 저장소는 default로 elpa다. 그런데 melpa라는 더 많은 pacakge를 가지고 있는 저장소도 있다.
+** M-x list-package
+저장소에서 제공하는 package목록파일을 다운받아서 보여준다.
+** (require 'package)
+package.el을 load한다.
+** (setq package-archives ,melpa,elpa주소)
+package repository를 설정한다.
+** (package-initialize)
+package-initialize를 하면 package-archive에서 package목록을 다운받는다. 다운 받은 package목록은 package-archive-contents라고 한다.
+** (unless package-archive-contents)(package-refresh-contents)
+처음 실행하면 패키지 목록이 없다. 그러면 package-refresh-contents를 실행해서 package목록을 가져온다.
+* use-package
+package관리자. package.el이란 옛날 관리자가 아닌 new관리자.
+package를 관리한다는것은 install,  load, config를 할수 있다는 것이다.
+
+- load
+사용법은 use-package 패키지명을 하면 package를 load한다. package에는 수많은 function으로 이루어진 프로그램인데, use-package는 기본적으로 autoload로 지정된 function만을 load한다. 나머지는 호출할때 load하는 방식이다. 이렇게 해야 속도문제가 해결된다.
+
+- install (ensure)
+** (setq use-package-always-ensure t)
+use-package는 :ensure t라는 keyword로 install을 명령한다. 모든 package에 :ensure t로 설치가 안되어 있다면 install하라고 할수도 있지만, default로 install하게 만들수 있다.
+
+
+- diminish
+** :diminish keyword
+modeline에 보면, major mode와 minor mode가 보여진다. 설치한 package가 mode라면 modeline에 보여지는데, diminish를 사용하면 보여지지 않는다.
+
+
+* (use-package command-log-mode)
+command log는 M-x,C-x 같은 모든 내가 치는 명령어를 무엇인지 buffer를 띄어서 보여준다.동영상 강의시에는 유용한 명령어다.
+M-x global command-log-mode로 활성화한 다음에
+M-x clm/toggle-command-log-buffer로 command log buffer를 띄운다.
+
+*  buffer Completion Framework (ivy)
+C-x f와 같은 find-file명령을 사용할때 ivy를 사용하지 않으면 파일을 찾기가 힘들다. ivy를 사용하면 현재 directory에 있는 file 목록이 minibuffer에 보여진다. shell에서 ls명령할때 보여진 그 list가 보여진다고 생각하면 된다. 이런 자동 완성 system이 ivy다. 
+** counsel
+ivy라는 완성 system에 사용하는 interface중 하나가 counsel이다. 그래서 find-file과 counsel-find-file은 다르다. ivy를 사용하는 것과 사용하지 않는것으로 다르다. 
+** counsel-load-theme
+ivy는 load할 수 있는 candidate를 minibuffer에 보여준다. 
+
+
+* etc
+** M-x recover-this-file
+편집중에 init.el이 망가지거나 system문제로 깨지면, emacs를 시작할때 recover(복구)할 수 있다.
