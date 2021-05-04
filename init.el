@@ -10,6 +10,8 @@
 ;; Set up the visible bell
 (setq visible-bell t)
 
+(setq ns-command-modifier 'meta)
+
 (set-face-attribute 'default nil :font "Fira Code Retina" :height 140)
 
 (load-theme 'wombat)

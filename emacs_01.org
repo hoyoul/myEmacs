@@ -1,5 +1,8 @@
 * Emacs From Scratch #1
 
+* metakey
+** (setq ns-command-modifier 'meta)
+Caps-lock을 metakey로 설정.
 * simple UI
 ** emacs -q -l ./.init.el
  emacs -q -l ./.init.el  (-l옵션은 init.el을 load하는 option이다.)
