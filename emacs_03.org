@@ -1,0 +1,29 @@
+* Emacs from Scratch#3
+** all-the-icons
+dooms mode-line에는 icon이 표시되는데 이 아이콘을 보이기 위해서는 (use-package all-the-icons)를 실행한다. 설치 방법은 아래 링크를 참고하고 있습니다. https://github.com/domtronn/all-the-icons.el
+** load-themes
+(use-package doom-themes 
+:init (load-theme 'doom-dracula )
+이렇게 theme를 load하는데 emacs가 실행할때 theme을 load하고 적용시킬것인지 여부를 매번 묻는다. 이것을 막기 위해서 :init (load-theme 'doom-dracula t)로 해준다.
+** (global-set-key (kbd "C-M-j") 'counsel-switch-buffer)
+counsel-switch-buffer는 C-x b를 눌러서 우리가 buffer를 선택하는 것과 비슷하게 buffer list를 나열한다. C-x b는 counsel-ibuffer다. 그런데 David은 counsel-switch-buffer를 더 좋아하는 거 같다.
+** key binding에 대해서
+각각의 mode는 key map을 가지고 있다. define-key라는 function으로 key를 설정하는 것은 현재 mode의 key map에 저장되어 있다. 어떤 mode의 key map을 확인하려면 C-h v emacs-lisp-mode-map으로 map을 직접 확인하면 된다.
+
+어떤 mode에 keybinding을 할려면 다음과 같이 한다.
+(define-key emacs-lisp-mode-map (kbd "C-x M-t") 'counsel-load-theme)
+emacs-lisp-mode-map에 다음 keybinding을 추가하겠다는 뜻이다. 이렇게 하면 emacs lisp mode에서 해당 keybinding이 동작한다.
+
+그럼 이 keybinding을 unset 하려면?
+현재 buffer에서 shift+option+:을 누르면 minibuffer에 lisp code를 실행할 수 있다. 여기서 (global-unset-key (kbd "C-M-j))를 실행시키면 된다.
+
+keybinding의 set,unset을 쉽게 해주는 package로 general.el이 있다.
+
+- general.el
+keybinding을 도와주는 패키지. global key binding을 쉽게 해준다. keybinding을 쉽게 해주고 which-key와 같이 candidate list도 보여준다.
+(example) (general-define-key "C-M-j" 'counsel-switch-buffer)
+
+general-create-definer를 사용해서 setting한다. 이 setting에서 keybinding definer를  아래의 hydra를 설정할때  text scale도 keybinding definer를 사용해서 정의할 수 있다.
+** hydra
+여기서는 text를 scale하는 함수를 만들어 사용하고 있다. buffer내의 text의 크기조절하는 key를 binding해서 사용한다. binding은 위의 general에서 정의한 keybinding definer를 이용해서 정의해서 사용한다.
+
