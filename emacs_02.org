@@ -1,0 +1,30 @@
+* Emacs From Scratch #2
+** (column-number-mode)
+예전에는 extra package로 있었지만, 지금은 built-in package로 되어 있다.
+** (global-display-line-numbers-mode t)
+line number mode를 global하게 설정한다.
+** (dolist (mode '(org-mode-hook term-mode-hook eshell-mode-hook)) (add-hook mode (lambda () (display-line-numbers-mode 0))))
+dolist의 형식은 dolist var list function 형태로 되어 있다. list의 loop를 돌면서 var에 assign한 후에 add-hook을 수행한다. add-hook은 function을 attach하는 것인데, 여기서는 lambda로  된 함수가 attach된다. attach되는것을 hook이라고 한다. 결론적으로 말하면, org-mode, term-mode,eshell-mode에는 각각의 mode에 맞는 hook이라는 변수가 있고, 이변수에 특정함수를 attach하면 그 mode가 실행될때 hook이 실행된다.
+
+우리가 어떤 package를 load하면 모든 function이 load되는 것이 아니라, autoload로 명시된 함수들이 load되어 실행되는 것과 마찬가지로 mode가 실행되면, mode의 hook부터 실행된다. 
+
+- hook확인
+각각의 mode에 있는 hook을 확인하는 방법은 간단하다. 
+org-mode-hook이라는 변수의 값을 확인하면 된다. C-h v를 누르면 document가 나온다. 거기서 hook을 알수 있다.
+** shift+option : (help)
+minibuffer에 evaluate를 할수 있게 한다. 위에서 설명한 hook과 연관된것이다. 특정  mode로 진입할때 이상한 행동을 하거나, 기존과 다를때는 hook에 어떤 function이 attach되어 있기 때문일수 있다. 그것을 확인하는 방식은 위에서 말했듯이 C-h v org-mode-hook과 같이 document에서 확인할 수도 있지만, 실제 function을 보기 위해서는 minibuffer에서 해당 hook variable을 실행시켜보면 알수 있다. shift+option으로 진입해서 hook을 입력하면 알수 있다.
+** rainbow-delimiters
+prog-mode에 rain-delimiter-mode라는 hook을 건다. prg-mode는 lisp-mode,python-mode같은 programming language mode의 base-mode를 말한다.
+** which-key
+C-h나 C-x, M-x 를 사용할 때 명령어를 써야 하는데, 머리속에 외우고 있는건 그대로 써서 실행하면 되지만 기억이 나지 않는 것들을 알고싶을때 도움이 된다. 사용 가능한 key들이 mini buffer에 보여진다.
+** ivy-rich
+M-x를 누르면 사용가능한 function이 목록으로 나오는데, ivy completion engine을 써서 나온다. 그런데 달랑 이름만 나온다. 그래서 detail한 정보도 같이 표현하는 package가 ivy-rich다. detail한 정보는 key binding정보와 function에대한 설명이다.
+** counsel
+ivy를 설치하면 counsel도 같이 설치된다. 하지만, counsel이 가지고 있는 기능은 기존 시스템의 binding으로 되어 있기 때문에 counsel의 binding으로 overwrite해준다. 
+** ivy mode의 특징(help)
+M-x를 누르면 수행가능한 function들이 list로 보여준다. 이 list의 function definition을 보려면
+M-o를 누르면 definition을 볼수 있는 메뉴가 나온다. help문서도 바로 볼 수 있다.
+** helpful
+help 문서를 보기쉽게 보여준다. custom section과 bind section에서는 system의 default function help기능을  counsel function으로 binding한 후에 다시 helpful function과 연결 시켜주는 과정을 처리한다.
+
+ 
