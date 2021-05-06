@@ -1,0 +1,23 @@
+* emacs from scratch #4
+* Projectile
+** (bind-keymap ("C-c p" . projectile-command-map)
+projectile-command-map에 기술된 binding keys에 대해서 prefix를 설정한다.
+** (projectile-project-search-path)
+project들은 한곳에 모아놓는다. 그리고 그곳의 경로를 설정해서, project list들을 mini buffer에서 선택할 수 있게 하는 구조라서 search-path를 설정해야 한다.
+** (projectile-switch-project-action #'projectile-dired)
+project list들에서 project를 선택하면 하는 행동은 dired버퍼를 열어서 directory list를 보여주는 것이다.
+** (projectile-completion-system 'ivy)
+projectile의 completion system은 ido로 되어 있다. ivy나 ido, helm과 같은 것을 completion system이라고 부른다. minibuffer에 candidate를 나열해 주는 기능을 한다고 보면 된다. ido는 built-in emacs package다.  ivy를 사용하면 여러 차이가 있는데 좋은점 중에 하나가, counsel의 기능 중에 이런게 있다. minibuffer에 보이는 list에서 meta-o를 누르면 action을 선택할 수 있는 기능이 있는데, ivy를 사용하면 이 기능을 이용할 수 있다. 왜냐면 counsel이 ivy를 base로 하는 built-in package이기 때문이다.
+** counsel-projectile-rg
+projectile의 주요 기능 중 하나가 grep인데, counsel-projectile-rg를 사용하기 위해서는 system에 brew install ripgrep을 설치해야 한다.
+
+counsel-projectile-rg를 실행하면 candidates들이 minibuffer에 뜬다. 여기서 확인할수 없을 때 C-x o를 사용해서 window에 보이게 할 수 있다.
+* Magit
+** use-package keyword :command
+command는 package를 load할 때 autoload할 function을 지정해준다.
+** magit status 화면
+head: head가 있는 branch의 위치를 나타낸다.
+Push: remote의 branch를 나타낸다.
+
+- diff
+
