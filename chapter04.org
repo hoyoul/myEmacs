@@ -20,4 +20,44 @@ head: head가 있는 branch의 위치를 나타낸다.
 Push: remote의 branch를 나타낸다.
 
 - diff
+stage에 올려진 file을 <tab or control>을 누르면 diff 명령어가 실행된다. commit의 마지막 저장 문자열과 추가된 부분이 +로 표시된다. changes를 볼 수 있다.
 
+. S,s
+S: unstage된 파일 모두 stage로 올린다.
+s: 선택된 파일만 stage로 올린다.
+
+- U,u
+U: stage된 파일 모두 unstaging한다.
+u:선택된 파일만 unstage한다.
+
+- c 
+commit을 한다.
+- C-c C-k
+quit commit buffer
+- C-c C-c
+commiting.
+
+- z(stash)
+작업이 다 끝나지 않은 상태에서 다른 branch로 이동할 수 없다. commit을 완료한 다음 branch이동이 가능한데, commit하기엔 작업이 완료가 되지 않았을때, 혹은 찝찝할때는 일시저장 비슷하게 stash에 저장한 다음에 다른 branch로 이동할 수 있다.
+stash에 저장하는 것은 index와 working tree 2가지다.
+
+- ?
+help 키바인딩을 볼 수 있다.
+
+- c,n
+create branch: branch만 만든다.
+new branch: branch를 만들고 switching한다.
+** forge
+- forge
+github관련 명령을 할 수 있다. 
+forge를  사용하게 되면 github에서 issue게시판에 올리는 내용도 pull해 올 수 있다.
+M-x forge-pull을 사용하면 원격 repository에 연결해서 필요한 정보를 pull해온다.
+
+- forge-pull request
+forge를 사용해서 pull request도 할 수 있다.
+
+- forge-list-topics
+github의 topic을 가져온다.
+
+- forge-create-issue
+github에 issue를 만든다.
