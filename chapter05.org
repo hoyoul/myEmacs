@@ -1,0 +1,91 @@
+* chap05 org mode basics
+
+* [header]
+**  shift+tab, tab
+collapse 기능
+** C-tab, M-tab
+insert heading
+** M-arrow(left, right)
+adjusting header level
+** M-arrow(up,down)
+rearrange
+** org-todo(C-c C-t)  
+header는 상태를 가질 수 있다. todo, done의 상태를 갖는다.
+* [content]
+** bold(*~*)
+text를 bold로 표시
+** link(C-c C-l)
+text에 link
+** open link(C-c C-o)
+open link
+** | table
+table의 column을 나타낸다.
+** check box check(C-c C-x C-b)
+toggling check, checkbox는 list에서만 나타낼 수 있다.
+** insert check box(M-shift-enter)
+list다음에 checkbox 추가하기 위해서는 M-shift-enter를 친다. 다음라인에도 
+checkbox를 추가할 수 있다.
+** literate programming
+#+begin_src 와 #+end_src의 block안에 code를 넣고 실행할 수 있다.
+** text-scale-adjust function
+buffer의 text크기를 조절하는 함수
+* configurations
+** ellipsis variable
+...으로 ellipsis가 되어 있는데 org-ellipsis로 변경
+** emphasis markers variable
+org-hide-emphasis-markers는 bold,italic을 표시하는 meta문자를 의미한다. 그것을 hide한다는 의미다.
+** org-bullets package
+header의 * character를 특정 symbol로 정의할 수 있다.
+** font-lock-add-keywords 
+특정 mode의 특정문자열을 다른 문자열로 변경시킨다. 여기서는 -를 dot으로 변경 시킨다.
+** org font설정
+우선 'face'라는 용어를 알아야 한다. face는 text의 style을 의미한다. [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Faces.html][여기]]를 참조해도 된다.
+face에는 font,weight,color같은 속성을 가지고 있다. face에는 이름이 있는데, 보통은 mode의 구성요소를 이름으로 갖는다. 물론 face의 이름은 고유하게 지어도 상관없다. 고유하게 지은 이름을 실제 구성요소에 inherit로 적용하면 되기 때문이다. 구성요소의 이름을 갖는경우, inherit face이름과 같아서 편리할 뿐이다.만일 구성요소에 적용할 face가 없다면 default란 이름의 face가 사용된다.
+
+- 설정파일에서 face
+
+(set-face-attribute 'default nil :font "Fira Code Retina" :height runemacs/default-font-size)
+
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height 180)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height 195 :weight 'regular)
+
+
+처음에 시작하면 default face가 적용된다. 그다음 fixed-pitch와 variable-pitch라는 이름의 face를 정의한다. 적용되지는 않는다.참고로 고정폰트는 코딩할때 쓰는 폰트로 보면되고 가변폰트는 일기나 문서작성에 쓰이는 예쁜 글씨체로 보면된다. 
+variable-pitch라는 face는 buffer-face mode, variable-pitch-mode의 default face이기 때문에 현재 buffer에 buffer-face-mode나 variable-pitch-mode를 enable하면 face가 변경되게 된다.
+
+fixed-pitch와 variable-pitch라는 이름의 face는 org-mode에서 적용할 것이다. org mode가 실행될 때 다음이 실행된다.
+
+  ;; Set faces for heading levels
+  (dolist (face '((org-level-1 . 1.2)
+                  (org-level-2 . 1.1)
+                  (org-level-3 . 1.05)
+                  (org-level-4 . 1.0)
+                  (org-level-5 . 1.1)
+                  (org-level-6 . 1.1)
+                  (org-level-7 . 1.1)
+                  (org-level-8 . 1.1)))
+    (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+
+  ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+  (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+  (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+  (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+  (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
+
+org mode의 구성요소들 중에 header를 나타내는 org-level들은 cantarell이라는 variable-font를 적용하고, 나머지 code-block, org-code...는 fixed font를 쓴다는 것을 알 수 있다. inhirit를 보면 위에서 정의한 fixed-pitch라는 이름의 face가 적용되었음을 알 수 있다. 그러면 mode의 구조는 어떻게 알수 있는가?
+M-x describe-face를 치고 org-x<tab>을 누르면 org의 구조를 알수 있고 해당 구조에 위와 같이 face를 적용시키면 된다.
+** visual-fill-column package
+현재 buffer의 양 side에 padding을 주는 package다. text가 써질때 양옆으로 붙여서 써지면 보기 안 좋다. 그래서 padding을 붙인다고 생각하면 된다. 양옆의 padding을 100으로 주고 화면 가운데 위치하게 하기 위해서는 다음과 같이 세팅한다.
+  (setq visual-fill-column-width 100
+        visual-fill-column-center-text t)
+** visual-line-mode
+visual line mode는 automatically line breaking, wrapping한다. 글을 쓰다가 line의 폭을 넘어가면 자동으로 단어 단위로 줄 바꿈을 해준다.
+
+
+
