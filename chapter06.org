@@ -1,0 +1,47 @@
+* chapter06 Organize your life with org mode
+* org agenda
+agenda는 해야할 일련의 일들이란 뜻이다. task들을 말한다. org모드에서는  todo달린 header들을 뜻한다. 
+org file에서 todo header들을 M-x org-agenda로 볼 수 있다. org-agenda에서 agenda들을 볼려면 agenda가 기술된 org file의 위치를 org mode실행할 때 알려줘야 한다. 
+** org-agenda-files
+(setq org-agenda-files '(())) 이런식으로 설정한다.
+** C-c C-s (org-schedule)
+todo header에 schedule 시간을 설정할 수 있다. calendar가 나오면 shift+arrow로 날짜를 지정한다.
+** C-c C-d(org-deadline)
+todo header에 deadline 시간을 설정할 수 있다. shift+arrow로 날짜를 정한다.
+** org-agenda
+a를 누르면 주당 agenda들을 볼 수 있다.  agenda에 schedule이 붙어 있어서 볼 수 있다.
+** org-deadline-warning-days
+org-agenda에서 agenda중에 deadline이 있는  agenda의 경우 언제부터 보여질지를 이 값을 통해 결정할 수 있다.
+** org-agenda-start-with-log-mode t
+agenda는 todo header라고 했다. agenda가 종료되면 종료되었다는 것을 기록할 수 있어야 한다. 그것을 log라고 하는데, org-agenda에서 a를 누르면 agenda가 종료된 정보가 보여진다.
+** org-log-done 'time
+agenda가 종료가 되었을때 종료 시간을 표시해준다. 위의 log mode를 true로 하고 종료시간을 표시하면 org-agenda에서 종료시간과 task가 종료됐음을 log로 보여준다.
+** org-log-into-drawer
+기록된 로그는 하루동안 혹은 한주동안 수행된 작업에 대한 보고서로 볼 수 있다. 이것을 drawer에 별도로 logbook의 형태로 저장할 수 있는데, 아직 특별한 설명은 없다.
+** org-todo-keywords
+agenda를 나타내는 todo header는 done상태만 있는것이 아니라 여러개의 상태를 가질 수 있다.
+** check-parens
+긴 parenthesis에서 빠진 괄호를 찾기 쉽게 해준다.
+** counsel-org-tag
+tag를 붙일수 있다. meta-enter로 tag를 선택할 수 있다.
+* Custom agenda settings
+** org-agenda-custom-commands
+agenda menu에서 custom agenda action을 정의.
+** org-tag-alist
+사용할 tag를 미리 정의
+** org-set-tags-commands
+정의된 tag list에서 tag를 선택할수 있는 menu를 제공해준다.
+** effort
+시간이 15분 , 20분, 처럼 걸리는 시간을 effort라는 항목으로 기술할 수 있다. property라는 keyword에 effort라는 항목이 생긴다. 
+** tags-to(e)
+agend view 메뉴에 e라는 항목이 있어서 15분이하 20분이하의 task만을 검색할 수 있다. agenda가 Next상태에만 해당한다.
+** org-set-effort
+effort를 기술한다.
+** org-refile (org-refile-targets)
+agenda가 done됐을때, 그것을 저장하는 logbook같은 파일을 만든다. archive.org같은 파일을 만들면 done된 agenda만 저장할 수 있다. org-refile-targets라는 변수에 refile할 파일을 기술해야 한다.
+** advice-add  (:after)
+refile하고 모든 buffer를 저장해서 system이 crash되서 날라가는 것을 막을 필요가 있다.
+
+* Doct(Declarative Org Capture Templates)
+** org-capture-template
+
