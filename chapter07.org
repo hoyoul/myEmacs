@@ -1,0 +1,19 @@
+* #7 configure everything with org babel
+** org-babel-execute-src-block
+org mode에서 src block은 #+begin_src programming language #+end_src로 만들어진다.
+이 source code block을 babel src code block이라고 하는데, 이를 실행하기 위해서는 org-babel-do-load-languages에 등록이되어야 한다.
+** org-babe-do-load-language
+org에서 처리할 수 있는 language관련 lisp code를 load한다. 실제 programming language나 compiler,interpreter는 system에 설치 되어 있고, elisp으로 된 wrapper함수가 마치 system에 설치되어 있는 programming language처럼 행동한다. 즉 programming언어는 system에 미리 설치되어 있어야 하고, org babel language package도 설치한다음 load해서 사용하는 방식이다.
+** org-confirm-babel-evaluate
+org src block을 실행할때 실행여부를 물어본다. nil은 물어보지 않는다.
+** org-temp,org-structure-template
+-  preamble
+#+begin_src 같은것을 preamble이라고 한다. 이런것을 template으로 해서 쉽게 typing이 가능하게 할 수 있다. org-tempo를 load하고 template을 정의한다음 <el<tab> 이런식으로 사용하면 쉽게 preamble이 들어간 code block을 만들 수 있다.
+** org-babel-tangle
+tangle이란건 babel에서 사용되는 용어다. babel은 org 문서내에 src block을 가지고 있는 데 이 block의 내용을 다른 파일에 저장할 수 있게 해준다. src block에서 preamble에 tangle할 위치를 기술한뒤에 실행하면 해당 src가 지정된 위치로 이동한다. src block에 동일한 이름의 tangle file을 기술하면 파일이 새로 만들어지거나 overwrite된는게 아니라 append,concatenate된다.
+예를 들면,
+#+begin_src :tangle "./init.el
+ src block 하나에 tangle이라는 parameter를 넘기면 다른 파일로 쓰여지지만, src block 한개가 아닌 여러개가 있는 파일전체에 있는  src block에 적용하기 위해서는 #+Property:라는 directive에 tangle을 기술하면된다.
+
+** revert-buffer
+buffer가 update되지 않을 경우 revert-buffer로 update한다.
