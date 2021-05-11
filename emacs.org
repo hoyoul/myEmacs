@@ -1,0 +1,732 @@
+
+#+title: Emacs From Scratch Configuration
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
+
+* Start!
+기본적인 것을 설정한다.
+- =[ evaluation ]=
+- eval-buffer
+buffer 전체를 해석한다.
+- C-x e
+한문장을 해석한다.
+- M-: 
+minibuffer에서 해석한다.  현재의 mode에서 실행할 수 있는 장점이 있다.
+
+#+begin_src emacs-lisp
+(setq ns-command-modifier 'meta)
+(setq make-backup-files nil)
+(defvar holy/default-font-size 200)
+(defvar holy/default-variable-font-size 200)
+#+end_src
+
+* Package System Setup
+
+emacs의 package관리 시스템은 old-school인 package가 있고, modern한 use-package가 있다. use-package로 package를 관리한다. 
+- package-archive
+ package repo를 지정한다.
+- package-archive-contents
+package repo마다 가지고 있는 package 목록과 설치여부를 표시한 list
+- package-initialize
+package-archive-contents에 installed로 표시된 package를 설치하고 load(autoload지시자가 있는 function을 실행)한다.
+- package-refresh-contents
+package-archive-content를 update한다.
+- use-package-always-ensure
+use-package는 package를 install, load, config할 수 있는데, install을 할때 ensure:t를 해주면 package가 system에 없을 경우 down받아서 install해준다. use-package를 사용하는 모든 경우에 system설치 여부를 확인하고 없으면 install하겠다는 function이다.
+
+#+begin_src emacs-lisp
+
+  ;; Initialize package sources
+  (require 'package)
+
+  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                           ("org" . "https://orgmode.org/elpa/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
+
+  (package-initialize)
+  (unless package-archive-contents
+    (package-refresh-contents))
+
+    ;; Initialize use-package on non-Linux platforms
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+
+#+end_src
+
+* Basic UI Configuration
+
+- fringe-mode
+ 보여지는 화면의 좌우 여백(padding)을 준다고 생각하면 된다.
+- do-list
+do-list는 python의 for 변수 in 배열 구문으로 보면된다.
+4가지 mode에는 line number를 disable하겠다는 뜻이다.
+
+#+begin_src emacs-lisp
+
+  (setq inhibit-startup-message t)
+
+  (scroll-bar-mode -1)        ; Disable visible scrollbar
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 10)        ; Give some breathing room
+
+  (menu-bar-mode -1)            ; Disable the menu bar
+
+  ;; Set up the visible bell
+  (setq visible-bell t)
+
+  (column-number-mode)
+  (global-display-line-numbers-mode t)
+
+  ;; Disable line numbers for some modes
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  shell-mode-hook
+                  eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+#+end_src
+
+** Font Configuration
+
+- system에 설치되어야 하는 font는 2가지다. fixed-pitch-font(fira code; for coding), variable-pitch-font(문서작성용) 아래에서 다운받는다.
+[[https://github.com/tonsky/FiraCode][Fira Code]] ,[[https://fonts.google.com/specimen/Cantarell][Cantarell]] 
+- 아래 설정에 3개의 이름의 face가 설정되어 있다. default,fixed-pitch,variable-pitch 이런 이름으로 선언만 한것이다. mode에 진입하면, mode의 구성요소별로 해당 face를 선택할 수 있다. face가 없는것은 default란 이름의 face가 적용되기 때문에 대부분의 mode에서는 fira code retina 폰트로 설정될 것이다. variable-pitch-mode에서는 variable-pitch를 face로 사용하기 때문에 Cantarell로 보일 것이다.
+
+#+begin_src emacs-lisp
+
+(set-face-attribute 'default nil :font "Fira Code Retina" :height holy/default-font-size)
+
+;; Set the fixed pitch face
+(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height holy/default-font-size)
+
+;; Set the variable pitch face
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height holy/default-font-size :weight 'regular)
+
+#+end_src
+
+* UI Configuration
+
+** Command Log Mode
+
+[[https://github.com/lewang/command-log-mode][command-log-mode]] 는 눌려지는 key를 화면에 표시해준다. 방송을 할때 주로 많이 쓰인다.
+clm/open-command-log-buffer를 실행하면 오른쪽에 buffer가 만들어지며 keybinding을 확인할 수 있다.
+
+#+begin_src emacs-lisp
+
+(use-package command-log-mode)
+
+#+end_src
+
+** Color Theme
+
+theme는 여러 종류가 있는데, doom theme가 가장 modern하다.
+[[https://github.com/hlissner/emacs-doom-themes][doom-themes]] , [[https://github.com/hlissner/emacs-doom-themes/tree/screenshots][screenshots]] 
+- counsel-load-themes로 theme 둘러보기가 가능하다.
+
+#+begin_src emacs-lisp
+
+(use-package doom-themes
+  :init (load-theme 'doom-monokai-spectrum t))
+  
+#+end_src
+
+** Better Modeline
+
+[[https://github.com/seagle0128/doom-modeline][doom-modeline]] , [[https://github.com/seagle0128/doom-modeline#customize][configuration options]] 
+
+*NOTE:* doom modeline은 icon이 보여지는데, 이 아이콘은 다음과 같이 설치해야 보여진다. 
+`M-x all-the-icons-install-fonts` 
+
+#+begin_src emacs-lisp
+
+(use-package all-the-icons)
+
+(use-package doom-modeline
+  :init (doom-modeline-mode 1)
+  :custom ((doom-modeline-height 18)))
+
+#+end_src
+
+** Which Key
+
+[[https://github.com/justbur/emacs-which-key][which-key]] 
+Emacs에서 keybinding을 사용해서 명령어를 실행하는데, 명령어 candidates를 minibuffer에 보여준다. 예를 들어, C-x를 누르면 명령어에 대한 candidates가 보여진다.
+
+#+begin_src emacs-lisp
+
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 1))
+
+#+end_src
+
+** Ivy and Counsel
+
+[[https://oremacs.com/swiper/][Ivy]] 
+- completion engine, minibuffer의 candidates를 보여주는 engine이다. 위에 봤던 which-key도 ivy의 completion의 engine을 사용한다.
+- =problem=
+ivy completion의 문제가 있다. 예를 들어보자. C-x f(find-file)를 실행한다. test~.org라는 파일이 있다. 나는 새로운 file인 test.org를 새로 만들려고 한다. 그래서 mini buffer에 test.org를 친 후 엔터를 입력한다. test.org가 만들어지지 않고 test~.org가 열린다. 이것을 해결할려면 test다음에  C-M-j를 누르고 .org를 입력해야 한다.
+[[https://github.com/Yevgnen/ivy-rich][ivy-rich]] 
+- M-x를 치면 mini buffer에 candidates가 나오는게 ivy engine을 쓰기 때문이다. 
+
+- use-package(:diminish)
+modeline에 mode를 감춘다. load되는 mode가 너무 많아지면 지저분해지기 때문이다.
+
+#+begin_src emacs-lisp
+
+    (use-package ivy
+      :diminish
+      :bind (("C-s" . swiper)
+             :map ivy-minibuffer-map
+             ("TAB" . ivy-alt-done)
+             :map ivy-switch-buffer-map
+             ("C-d" . ivy-switch-buffer-kill)
+             :map ivy-reverse-i-search-map
+             ("C-k" . ivy-previous-line)
+             ("C-d" . ivy-reverse-i-search-kill))
+      :config
+      (ivy-mode 1))
+
+    (use-package ivy-rich
+      :init
+      (ivy-rich-mode 1))
+
+    (use-package counsel
+      :bind (("C-M-j" . 'counsel-switch-buffer)
+             :map minibuffer-local-map
+             ("C-r" . 'counsel-minibuffer-history))
+      :config
+      (counsel-mode 1))
+
+#+end_src
+
+** Helpful Help Commands
+
+[[https://github.com/Wilfred/helpful][Helpful]] 
+-  describe-function, describe-variable과 같은 document는 built-in package나 counsel을 통해서 보는 것은 source와 간략한 설명뿐이다. helpful package는 좀 더 자세한 help document를 제공한다.
+
+#+begin_src emacs-lisp
+
+  (use-package helpful
+    :custom
+    (counsel-describe-function-function #'helpful-callable)
+    (counsel-describe-variable-function #'helpful-variable)
+    :bind
+    ([remap describe-function] . counsel-describe-function)
+    ([remap describe-command] . helpful-command)
+    ([remap describe-variable] . counsel-describe-variable)
+    ([remap describe-key] . helpful-key))
+
+#+end_src
+
+** Text Scaling
+
+ [[https://github.com/abo-abo/hydra][Hydra]] 
+- hydra는 keybinding을 편리하게 해주는 package다. <f2> i key 가 increase character로 define되어 있을때 글자 크기를 키우기 위해서 <f2> i ,<f2> i , <f2> i...를 계속 눌러서 키워야 한다. 이것을 간단히 하기 위해서 hydra를 사용한다.  hydra를 사용하면 <f2> i,i,i,i...로 계속 키울수 있다. 아래에선 hydra-text-scale이란 function을 사용하고(M-x hydra..) 메뉴형식으로 보여지게 된다.
+#+begin_src emacs-lisp
+
+  (use-package hydra)
+
+  (defhydra hydra-text-scale (:timeout 4)
+    "scale text"
+    ("j" text-scale-increase "in")
+    ("k" text-scale-decrease "out")
+    ("f" nil "finished" :exit t))
+
+;  (rune/leader-keys
+;    "ts" '(hydra-text-scale/body :which-key "scale text"))
+
+#+end_src
+
+* Org Mode
+
+[[https://orgmode.org/][Org Mode]] 
+
+** Better Font Faces
+-  -<tab>을 써서 dot으로 바꾸는 것은 regular expression을 사용한다.
+- org mode에서 header는 org-level-1,2,3,...으로 나타낸다. 각각의 header의 size를 설정하고 Cantarell이라는 가변폰트를 사용해서 face를 정의한다.
+- code나 table의 경우는 고정폰트로 face를 정의한다.
+
+#+begin_src emacs-lisp
+
+  (defun holy/org-font-setup ()
+    ;; Replace list hyphen with dot
+    (font-lock-add-keywords 'org-mode
+                            '(("^ *\\([-]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+    ;; Set faces for heading levels
+    (dolist (face '((org-level-1 . 1.2)
+                    (org-level-2 . 1.1)
+                    (org-level-3 . 1.05)
+                    (org-level-4 . 1.0)
+                    (org-level-5 . 1.1)
+                    (org-level-6 . 1.1)
+                    (org-level-7 . 1.1)
+                    (org-level-8 . 1.1)))
+      (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+
+    ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch))
+
+#+end_src
+
+** Basic Config
+
+강의: [[https://youtu.be/VcgjTEa0kU4][Part 5]] and [[https://youtu.be/PNE-mgkZ6HM][Part 6]] 
+
+[org mode setup]
+
+- org file을 open하면, org-mode라는 function이 수행된다.  아래에서 use-package org도 org-mode를 수행한다고 보면된다.
+- org-indent-mode:indent는 말그대로 org mode에서는 indentation을 하겠다는 뜻이다. 새로운 줄이 시작될때 띄어쓰기가 된다.
+- varible-pitch-mode:org파일을 가변폰트로 쓰겠다는 뜻이다.
+- visual-line-mode: line이 끝날때 word wrapping으로 line이 끝난다.
+
+[org agenda]
+- org-agenda-start-log-mode
+- org-log-done 'time
+- org-log-into-drawer(org-add-note)
+
+agenda는 todo header를 뜻한다. agenda가 끝나면, 끝났다는 것을 기록하고 agenda view에서 볼때 언제 끝난지 표시될 수 있어야 한다. org-log-done은 끝나는 시간을 todo header에 표시해주고, start-log-mode를 true로 하면 agenda view에서 끝난시간이 기록되어 볼 수 있다. org-log-into-drawer는 agenda에 drawer를 만든다. drawer라는것은 서랍인데 agenda와 관련한 내용을 작성하고 서랍에 넣는다고 보면된다. org mode에서 header들은 tab키로 열고 닫을수 있다. header가 아닌면서 열고 닫는 기능을 갖는 게 drawer다. C-c C-z를 누르면 quick note를 작성하는데 작성이 끝난것을 org-log-into-drawer가 t로 되어 있으면 LOGBOOK이 만들어지면서, quick note가 저장된다
+
+- org-agenda-files
+agenda view에서 보기 위해선 agenda들이 기록될 파일들이 특정위치에 있어야 한다.
+
+- org-habit
+org-modules중에 org-habit이 enable되어야 한다.
+
+#+begin_src emacs-lisp
+
+  (defun holy/org-mode-setup ()
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (visual-line-mode 1))
+
+  (use-package org
+    :hook (org-mode . holy/org-mode-setup)
+    :config
+    (setq org-ellipsis " ▾")
+
+    (setq org-agenda-start-with-log-mode t)
+    (setq org-log-done 'time)
+    (setq org-log-into-drawer t)
+
+    (setq org-agenda-files
+          '("~/MyWorld/Projects/OrgFiles/Tasks.org"
+            "~/MyWorld/Projects/OrgFiles/Habits.org"
+         "~/MyWorld/Projects/OrgFiles/Birthdays.org"))
+
+    (require 'org-habit)
+    (add-to-list 'org-modules 'org-habit)
+    (setq org-habit-graph-column 60)
+
+    (setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+        (sequence "BACKLOG(b)" "PLAN(p)" "READY(r)" "ACTIVE(a)" "REVIEW(v)" "WAIT(w@/!)" "HOLD(h)" "|" "COMPLETED(c)" "CANC(k@)")))
+
+    (setq org-refile-targets
+      '(("Archive.org" :maxlevel . 1)
+        ("Tasks.org" :maxlevel . 1)))
+
+    ;; Save Org buffers after refiling!
+    (advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+    (setq org-tag-alist
+      '((:startgroup)
+         ; Put mutually exclusive tags here
+         (:endgroup)
+         ("@errand" . ?E)
+         ("@home" . ?H)
+         ("@work" . ?W)
+         ("agenda" . ?a)
+         ("planning" . ?p)
+         ("publish" . ?P)
+         ("batch" . ?b)
+         ("note" . ?n)
+         ("idea" . ?i)))
+
+    ;; Configure custom agenda views
+    (setq org-agenda-custom-commands
+     '(("d" "Dashboard"
+       ((agenda "" ((org-deadline-warning-days 7)))
+        (todo "NEXT"
+          ((org-agenda-overriding-header "Next Tasks")))
+        (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
+
+      ("n" "Next Tasks"
+       ((todo "NEXT"
+          ((org-agenda-overriding-header "Next Tasks")))))
+
+      ("W" "Work Tasks" tags-todo "+work-email")
+
+      ;; Low-effort next actions
+      ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+       ((org-agenda-overriding-header "Low Effort Tasks")
+        (org-agenda-max-todos 20)
+        (org-agenda-files org-agenda-files)))
+
+      ("w" "Workflow Status"
+       ((todo "WAIT"
+              ((org-agenda-overriding-header "Waiting on External")
+               (org-agenda-files org-agenda-files)))
+        (todo "REVIEW"
+              ((org-agenda-overriding-header "In Review")
+               (org-agenda-files org-agenda-files)))
+        (todo "PLAN"
+              ((org-agenda-overriding-header "In Planning")
+               (org-agenda-todo-list-sublevels nil)
+               (org-agenda-files org-agenda-files)))
+        (todo "BACKLOG"
+              ((org-agenda-overriding-header "Project Backlog")
+               (org-agenda-todo-list-sublevels nil)
+               (org-agenda-files org-agenda-files)))
+        (todo "READY"
+              ((org-agenda-overriding-header "Ready for Work")
+               (org-agenda-files org-agenda-files)))
+        (todo "ACTIVE"
+              ((org-agenda-overriding-header "Active Projects")
+               (org-agenda-files org-agenda-files)))
+        (todo "COMPLETED"
+              ((org-agenda-overriding-header "Completed Projects")
+               (org-agenda-files org-agenda-files)))
+        (todo "CANC"
+              ((org-agenda-overriding-header "Cancelled Projects")
+               (org-agenda-files org-agenda-files)))))))
+
+    (setq org-capture-templates
+      `(("t" "Tasks / Projects")
+        ("tt" "Task" entry (file+olp "~/MyWorld/Projects/OrgFiles/Tasks.org" "Inbox")
+             "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
+
+        ("j" "Journal Entries")
+        ("jj" "Journal" entry
+             (file+olp+datetree "~/MyWorld/Projects/OrgFiles/Journal.org")
+             "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
+             ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
+             :clock-in :clock-resume
+             :empty-lines 1)
+        ("jm" "Meeting" entry
+             (file+olp+datetree "~/MyWorld/Projects/OrgFiles/Journal.org")
+             "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
+             :clock-in :clock-resume
+             :empty-lines 1)
+
+        ("w" "Workflows")
+        ("we" "Checking Email" entry (file+olp+datetree "~/MyWorld/Projects/OrgFiles/Journal.org")
+             "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
+
+        ("m" "Metrics Capture")
+        ("mw" "Weight" table-line (file+headline "~/MyWorld/Projects/OrgFiles/Metrics.org" "Weight")
+         "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)))
+
+    (define-key global-map (kbd "C-c j")
+      (lambda () (interactive) (org-capture nil "jj")))
+
+    (holy/org-font-setup))
+
+#+end_src
+
+*** Nicer Heading Bullets
+
+- 참조
+[[https://github.com/sabof/org-bullets][org-bullets]] , [[https://github.com/integral-dw/org-superstar-mode][org-superstar-mode]] 
+
+- 헤더의 level을 나타냄.
+
+#+begin_src emacs-lisp
+
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+#+end_src
+
+*** Center Org Buffers
+
+참조:  [[https://github.com/joostkremers/visual-fill-column][visual-fill-column]] 
+- org mode의 양 side에 padding을 붙인다. text는 center로 가게 한다.
+#+begin_src emacs-lisp
+
+  (defun holy/org-mode-visual-fill ()
+    (setq visual-fill-column-width 100
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . holy/org-mode-visual-fill))
+
+#+end_src
+
+** Configure Babel Languages
+
+참조:  [[https://orgmode.org/worg/org-contrib/babel/languages.html][This page]] 
+- literate programming을 할수 있다.  babel을 하기 위해선, 여기에 programming language를 등록도 하고, 해당되는 elisp package도 설치해야 하고, system에 interpreter나 compiler가 설치 되어 있어야 한다.
+
+#+begin_src emacs-lisp
+
+  (org-babel-do-load-languages
+    'org-babel-load-languages
+    '((emacs-lisp . t)
+      (python . t)))
+
+  ;; (push '("conf-unix" . conf-unix) org-src-lang-modes)
+
+#+end_src
+** Structure Templates
+- 참고
+ [[https://orgmode.org/manual/Structure-Templates.html][structure templates]] , [[https://orgmode.org/worg/org-contrib/babel/languages.html][as it is known by Org Babel]].
+<sh<tab> 을 누르면 template이 써진다.
+#+begin_src emacs-lisp
+
+  ;; This is needed as of Org 9.2
+  (require 'org-tempo)
+
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+
+#+end_src
+
+** Auto-tangle Configuration Files
+- tangle
+tangle이라는 것은 src_block에 기술한것을 특정 파일에 쓰는 것을 뜻한다. 여기서는 emacs.org라는 파일에서 emacs에 대한 설정을 src_block에 한다. 그런 다음 org-babel-tangle이라는 명령을 사용해서 최상단에 지정된 init.el로 쓰는 작업을 하게 된다.
+
+#+begin_src emacs-lisp
+  ;; Automatically tangle our Emacs.org config file when we save it
+  (defun holy/org-babel-tangle-config ()
+    (when (string-equal (buffer-file-name)
+                        (expand-file-name "~/MyWorld/emacs.org"))
+      ;; Dynamic scoping to the rescue
+      (let ((org-confirm-babel-evaluate nil))
+        (org-babel-tangle))))
+
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'holy/org-babel-tangle-config)))
+
+#+end_src
+
+* Development
+** Languages
+*** Language Servers
+
+#+begin_src emacs-lisp
+(defun holy/lsp-mode-setup ()
+  (setq lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols))
+  (lsp-headerline-breadscrumb-mode))
+
+(use-package lsp-mode
+  :commands (lsp lsp-deferred)
+  :hook (lsp-mode . holy/lsp-mode-setup)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+#+end_src
+*** TypeScript
+#+begin_src emacs-lisp
+  (use-package typescript-mode
+    :mode "\\.ts\\'"
+    :hook (typescript-mode . lsp-deferred)
+    :config
+    (setq typescript-indent-level 2))
+
+#+end_src
+** Projectile
+
+- 참조
+[[https://projectile.mx/][Projectile]] 
+- project를 관리하는 app, project가 위치할 곳을 정해두고 거기서 project를 생성해야 처리가 된다.
+- projectile-rg
+가장 많이 사용하는 grep인데, system에 ripgrep을 설치하고 사용한다.
+
+#+begin_src emacs-lisp
+
+  (use-package projectile
+    :diminish projectile-mode
+    :config (projectile-mode)
+    :custom ((projectile-completion-system 'ivy))
+    :bind-keymap
+    ("C-c p" . projectile-command-map)
+    :init
+    ;; NOTE: Set this to the folder where you keep your Git repos!
+    (when (file-directory-p "~/MyWorld/Projects/Code")
+      (setq projectile-project-search-path '("~/MyWorld/Projects/Code")))
+    (setq projectile-switch-project-action #'projectile-dired))
+
+  (use-package counsel-projectile
+    :config (counsel-projectile-mode))
+
+#+end_src
+** Terminal 
+***   terminal
+vterm을 추천한다.
+#+begin_src emacs-lisp
+(use-package term
+  :config
+  (setq explicit-shell-file-name "zsh")
+  (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *"))
+
+(use-package eterm-256color
+  :hook (term-mode . eterm-256color-mode))
+
+#+end_src
+*** Vterm
+- vterm은 emacs native terminal이라서 빠르다.
+- vterm을 사용하기 위해선, system에 cmake가 설치되어 있어야 한다. (brew install cmake libtool)
+#+begin_src emacs-lisp
+(use-package vterm
+  :commands vterm
+  :config
+  (setq vterm-max-scrollback 10000))
+#+end_src
+** Shell
+eshell을 추천한다.
+#+begin_src emacs-lisp
+(defun holy/configure-eshell ()
+   (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
+   (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
+
+   (setq eshell-history-size                    10000
+          eshell-buffer-maximum-lines 10000
+          eshell-hist-ignoredups t
+          eshell-scroll-to-bottom-on-input t))
+
+(use-package eshell-git-prompt)
+
+(use-package eshell
+   :hook (eshell-first-time-mode . holy/configure-eshell)
+   :config
+   (with-eval-after-load 'esh-opt
+      (setq eshell-destroy-buffer-when-process-dies t)
+      (setq eshell-visual-commands '("htop" "zsh" "vim" "less" "more")))
+   (eshell-git-prompt-use-theme 'powerline))
+
+#+end_src
+** Magit
+- 참조
+[[https://magit.vc/][Magit]] 
+- forge
+forge는 github과의 연동을 위해서 사용한다고 한다.
+- magit-branch-read-upstream-first 'fallback
+magit에서 branch를 만드는 명령어가 안된다. 되게 해주는 setting
+#+begin_src emacs-lisp
+
+  (use-package magit
+    :custom
+    (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+  ;; NOTE: Make sure to configure a GitHub token before using this package!
+  ;; - https://magit.vc/manual/forge/Token-Creation.html#Token-Creation
+  ;; - https://magit.vc/manual/ghub/Getting-Started.html#Getting-Started
+  (use-package forge)
+
+(setq magit-branch-read-upstream-first 'fallback)
+#+end_src
+
+** Rainbow Delimiters
+
+- 참조
+[[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters]] 
+parenthesis topology를 color별로 나타낸다.
+#+begin_src emacs-lisp
+
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+#+end_src
+
+* File Management
+- ^, dired-jump(C-x j)
+상위폴더로 이동, dired-jump는 현재 buffer에서 dired mode로 전환한다.
+- C-o (dired-display-file)
+파일을 other window에서 open
+- dired-listing-switch
+listing을 sorting한다. directory 먼저 나오고 그다음 file
+- dired-hide-detail( open parenthesis )
+파일 이름만 나오게 한다.
+- dired-toggle-marks
+하나의 파일을 m을 눌러 mark한 후 t를 누르면 mark된 파일 빼놓고 모든 파일이 mark된다.
+- dired-mark-files-regex
+%키를 누르면 sub menu가 나온다. m(dired-mark-files-regex)을 선택하고 원하는 파일의 패턴을 입럭한다. 
+예를 들면, .org$; 이것은 org로 끝나는 파일을 의미한다.
+- *
+sub menu가 보이고 조건에  맞는 파일을 mark한다.
+- =[copy & rename & move]=
+  - c 
+    copy single file
+  - C
+    copy multiple marked file
+  .R (rename & move)
+   rename 할 이름을 입력한다.
+   rename할 이름을 minibuffer에 입력할때, 원하는 폴더로 이동해서 enter를 치면 move가 된다. 
+
+- =[ dred-dwim-target ]=
+이 변수를 true로 setting하면 dwim을 사용할 수 있다. 예를 들어 dired buffer를 2개를 띄운 다음 copy를 하기 위해 C를 누르면 target의 위치가 열려진 direed buffer로 정해진다. target의 위치를 따로 정할 필요가 없다. 이런 것을 dwim이라고 한다. 
+
+- =[zip,unzip]=
+가장 유용한 기능중 하나. 파일을 선택하고 Z를 누르면 zip,unzip할 수 있다. 확장자는 tar.gz다.
+만일 zip으로 압축하고 싶다면,
+- dired-compress-files-alist의 값을 zip으로 하면 된다. 사용법은 describe-variable에서 살펴보면 된다.
+
+- =[other useful,helpful]=
+- shift-M
+ file mode변경
+- shift-t
+=> 파일의 timestamp를 변경할 수 있다.
+- shift-o
+=> 파일의 owner를 변경
+- shift-g
+=>파일의 group을 변경
+- shift-s
+=> symbolic link를 만든다.
+
+- =[all-the-icons-dired-mode]=
+=> dired모드에 icon
+
+- =[dired-open]=
+=> dired mode에서 선택된 파일은 emacs내에서 처리한다. 외부 프로그램에서 처리하게 할 때 이 package를 설치하고 &를 누르면 외부 프로그램을 사용할 수 있다.
+예를 들어, html=>browser, png=> adobe, mp3=>mpv
+
+- dired-listing-switches
+이것은 dired에서 sorting해서 보여주는 설정인데, mac에서는 ls란 utility가 전체 설치가 안되어 있어서 동작하지 않는다. 이것을 사용하기 위해선 brew install coreutils를 설치해야 agho라는 option을 처리할 수 있다. 또한 다른것도 처리해야 하는데, 나는 그냥 안쓰기로 했다.
+
+- =[dired-maybe-insert-subdir]=
+매우 유용한 명령어, i key와 binding되어 있는데, subfolder를 볼때 새 버퍼를 띄우지 않는다. 하나의 buffer에서 subdir을 계속 보여줄 수 있다. 매우 유용한 명령어다.
+** Dired
+#+begin_src emacs-lisp
+  (use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :bind (("C-x C-j" . dired-jump))
+  ;; :custom ((dired-listing-switches "-agho --group-directories-first"))
+  )
+
+  (use-package all-the-icons-dired
+    :hook (dired-mode . all-the-icons-dired-mode))
+
+  ;; (use-package dired-open
+  ;;   :config
+  ;;   (add-to-list 'dired-open-functions #'dired-open-xdg t)
+  ;;   (setq dired-open-extensions '(("png" . "feh")
+  ;;                                 ("mkv" . "mpv"))))
+
+  (use-package dired-hide-dotfiles
+     :hook (dired-mode . dired-hide-dotfiles-mode)
+     :config 
+     (define-key dired-mode-map "H" 'dired-hide-dotfiles-mode))
+#+end_src
+* Applications
+** Some App
+
