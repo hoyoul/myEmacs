@@ -2,6 +2,7 @@
 #+PROPERTY: header-args:emacs-lisp :tangle ./init.el :mkdirp yes
 
 * Start!
+:About_Setting:
 기본적인 것을 설정한다. emacs.org는 .emac.d폴더에 넣어 둔다. 그리고 수정할때 마다, 추가할 때 마다 tangle에 의해서 자동으로 init.el이 만들어진다.
 - =[ evaluation ]=
 - eval-buffer
@@ -10,16 +11,42 @@ buffer 전체를 해석한다.
 한문장을 해석한다.
 - M-: 
 minibuffer에서 해석한다.  현재의 mode에서 실행할 수 있는 장점이 있다.
+- ns-command-modifier: command키를 meta로 한다.
+- make-backup-files:  backup file을 만들지 않는다.
+  - server socket directory: emacs --daemon=a라고 하면 a라는  server socket file이 해당 폴더에 저장된다.
+:end:
+:About_EmacsDaemon:
+- (server-start)
+  emacs를 실행시키면 server가 된다. frame을 닫으면 server도 stop된다. 즉 emacs화면을 유지한 상태에서 emacsclient의 접속을 받아 server의 기능을 유지한다. 우리는 화면(frame)을 닫아도 background에서 도는 daemon을 원하기 때문에 이 방법은 쓸 수 없다.
+-  emacs --daemon
+  emacs의 configuration을 실행한 후 daemon이 된다. background에서 계속 돈다.
+  - emacs --daemon=one_daemon
+    emacs daemon에 이름을 줘서 여러개의 daemon을 만들 수 있다.
+
+- [문제]
+   emacs --daemon으로 실행할 때 init.el을 실행한다. 그리고 daemon으로 동작한다. 이때 emacsclient -c로 새로운 frame을 만들고 접속할때, 이상한 frame이 만들어진다. font나 modeline이 이상하게 보여진다. 이것은 처음 만들어진 frame에서만 발생되는 현상이다. 그 이후에 frame을 만들면 정상적으로 보인다. 이것은 emacsclient -c가 first frame을 만들때 font나 modeline의 설정을 init.el에 있는것이 아닌 default값을 쓰기 때문이다. 즉 emacs daemon이 실행하면서 설정한 값들이 emacsclient -c로  실행될 때 init.el에 기술된 설정을 적용하지 않는것이다.
+- [해결법]
+   daemon이 init.el을 적용할때 hook을 걸어두는 것이다. frame이 만들어진 이후에 font나 modeline을 설정하게 만드는 함수를 만들고 hook을 걸어둔다. deamon이 hook을 실행하고,모든 설정을 수행한 후에 deamon을 돌고 emacsclient -c로 연결을 하면, frame이 만들어지는데 이때 hook이 실행되는 원리다. 약간 설명이 미흡한데 자세한 동작원리를 모르기 때문이다.
+   
+- initial-frame-alist, default-frame-alist
+  frame 설정에 관련된 값들이 key,value쌍으로 저장된다. 최초의 frame관련 설정은 initial-frame-alist에 있고, default는 그 이후 만들어지는 frame에 대한 설정을 가지고 있다. 
+
+- [emacs server 사용법]
+  emacs --fd-daemon은 emacs daemon을 동작시킨다. daemon은 socket file을 가지고 있는데, 그 위치를 emacs.org설정파일에 /tmp/emacs1000/server라는 이름으로 기술되어 있다. emacsclient는 daemon에 접속하기 위해서 emacsclient -c --server-socket-name=/tmp/emacs1000/server를 기술해야만 접속이 가능하다. 
+
+:end:
 
 #+begin_src emacs-lisp
-(setq ns-command-modifier 'meta)
-(setq make-backup-files nil)
-(defvar holy/default-font-size 200)
-(defvar holy/default-variable-font-size 200)
+
+  (setq ns-command-modifier 'meta)
+  (setq make-backup-files nil)
+  (setq server-socket-dir "/tmp/emacs1000")
+  (defvar holy/default-font-size 200)
+  (defvar holy/default-variable-font-size 200)
 #+end_src
 
 * Package System Setup
-
+:AboutSetting:
 emacs의 package관리 시스템은 old-school인 package가 있고, modern한 use-package가 있다. use-package로 package를 관리한다. 
 - package-archive
  package repo를 지정한다.
@@ -31,7 +58,7 @@ package-archive-contents에 installed로 표시된 package를 설치하고 load(
 package-archive-content를 update한다.
 - use-package-always-ensure
 use-package는 package를 install, load, config할 수 있는데, install을 할때 ensure:t를 해주면 package가 system에 없을 경우 down받아서 install해준다. use-package를 사용하는 모든 경우에 system설치 여부를 확인하고 없으면 install하겠다는 function이다.
-
+:END:
 #+begin_src emacs-lisp
 
   ;; Initialize package sources
@@ -55,11 +82,13 @@ use-package는 package를 install, load, config할 수 있는데, install을 할
 #+end_src
 
 ** automatically update packages
+:AboutSetting:
 - upgrade, update
 설치된 package를 update하려면, M-x list-package를 통해 repo에서 새로운 package content list를 다운받아서 비교를 통해서 update항목을 알려준다. U를 눌러 update를 하고 x를 눌러 실행한다. 매번 list-package로 update 유무를 판단하는것은 힘들다. 자동으로 하는 설정이다.
 7일, 오전 9시에 update를 하고 하기전에 prompt로 물어보게 했다.
 =NOTE=
 package update는 잘못된 package를 update를 할경우 설정이 꼬일 수 있다. 그래서 안사용해도 된다.
+:end:
 #+begin_src emacs-lisp
 
 (use-package auto-package-update
@@ -72,13 +101,13 @@ package update는 잘못된 package를 update를 할경우 설정이 꼬일 수 
    (auto-package-update-at-time "09:00"))
 #+end_src
 * Basic UI Configuration
-
+:About_Setting:
 - fringe-mode
  보여지는 화면의 좌우 여백(padding)을 준다고 생각하면 된다.
 - do-list
 do-list는 python의 for 변수 in 배열 구문으로 보면된다.
 4가지 mode에는 line number를 disable하겠다는 뜻이다.
-
+:end:
 #+begin_src emacs-lisp
 
   (setq inhibit-startup-message t)
@@ -104,60 +133,68 @@ do-list는 python의 for 변수 in 배열 구문으로 보면된다.
     (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 #+end_src
-
 ** Font Configuration
-
+:AboutSetting:
 - system에 설치되어야 하는 font는 2가지다. fixed-pitch-font(fira code; for coding), variable-pitch-font(문서작성용) 아래에서 다운받는다.
 [[https://github.com/tonsky/FiraCode][Fira Code]] ,[[https://fonts.google.com/specimen/Cantarell][Cantarell]] 
 - 아래 설정에 3개의 이름의 face가 설정되어 있다. default,fixed-pitch,variable-pitch 이런 이름으로 선언만 한것이다. mode에 진입하면, mode의 구성요소별로 해당 face를 선택할 수 있다. face가 없는것은 default란 이름의 face가 적용되기 때문에 대부분의 mode에서는 fira code retina 폰트로 설정될 것이다. variable-pitch-mode에서는 variable-pitch를 face로 사용하기 때문에 Cantarell로 보일 것이다.
-
+:End:
 #+begin_src emacs-lisp
 
-(set-face-attribute 'default nil :font "Fira Code Retina" :height holy/default-font-size)
+     (defun holy/set-font-faces ()		
+       (message "Setting faces!")
+       (set-face-attribute 'default nil :font "Fira Code Retina" :height holy/default-font-size)
 
-;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height holy/default-font-size)
+           ;; Set the fixed pitch face
+       (set-face-attribute 'fixed-pitch nil :font "Fira Code Retina" :height holy/default-font-size)
 
-;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil :font "Cantarell" :height holy/default-font-size :weight 'regular)
+           ;; Set the variable pitch face
+       (set-face-attribute 'variable-pitch nil :font "Cantarell" :height holy/default-font-size :weight 'regular)
+  )
+
+    (if (daemonp)
+        (add-hook 'after-make-frame-functions
+           (lambda (frame)
+                   (setq doom-modeline-icon t)
+		     (message "Deamon faces!")
+               (with-selected-frame frame
+                    (holy/set-font-faces))))
+        (holy/set-font-faces))
 
 #+end_src
 
 * UI Configuration
-
 ** Command Log Mode
-
-[[https://github.com/lewang/command-log-mode][command-log-mode]] 는 눌려지는 key를 화면에 표시해준다. 방송을 할때 주로 많이 쓰인다.
+:AboutSetting:
+command-log-mode]] 는 눌려지는 key를 화면에 표시해준다. 방송을 할때 주로 많이 쓰인다.
 clm/open-command-log-buffer를 실행하면 오른쪽에 buffer가 만들어지며 keybinding을 확인할 수 있다.
-
+[[https://github.com/lewang/command-log-mode][참조]]
+:end:
 #+begin_src emacs-lisp
-
 (use-package command-log-mode)
-
 #+end_src
 
 ** Color Theme
-
+:About_Setting:
 theme는 여러 종류가 있는데, doom theme가 가장 modern하다.
 [[https://github.com/hlissner/emacs-doom-themes][doom-themes]] , [[https://github.com/hlissner/emacs-doom-themes/tree/screenshots][screenshots]] 
 - counsel-load-themes로 theme 둘러보기가 가능하다.
-
+:end:
 #+begin_src emacs-lisp
-
 (use-package doom-themes
   :init (load-theme 'doom-monokai-spectrum t))
-  
 #+end_src
-
 ** Better Modeline
-
-[[https://github.com/seagle0128/doom-modeline][doom-modeline]] , [[https://github.com/seagle0128/doom-modeline#customize][configuration options]] 
+:About_Setting:
+doom-modeline]] , [[https://github.com/seagle0128/doom-modeline#customize][configuration options]] 
 
 *NOTE:* doom modeline은 icon이 보여지는데, 이 아이콘은 다음과 같이 설치해야 보여진다. 
 `M-x all-the-icons-install-fonts` 
 
 - doom-modeline-buffer-file-name-style
 buffer에 파일 경로도 보여준다.
+[[https://github.com/seagle0128/doom-modeline][모드라인]]
+:end:
 #+begin_src emacs-lisp
 
 (use-package all-the-icons)
@@ -166,7 +203,6 @@ buffer에 파일 경로도 보여준다.
   :init (doom-modeline-mode 1)
   :config (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
   :custom ((doom-modeline-height 18)))
-
 
 #+end_src
 
@@ -534,7 +570,6 @@ tangle이라는 것은 src_block에 기술한것을 특정 파일에 쓰는 것�
         (org-babel-tangle))))
 
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'holy/org-babel-tangle-config)))
-
 #+end_src
 
 * Development
@@ -614,24 +649,24 @@ vterm을 추천한다.
 ** Shell
 eshell을 추천한다.
 #+begin_src emacs-lisp
-(defun holy/configure-eshell ()
-   (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
-   (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
+  (defun holy/configure-eshell ()
+    (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
+    (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
 
-   (setq eshell-history-size                    10000
-          eshell-buffer-maximum-lines 10000
-          eshell-hist-ignoredups t
-          eshell-scroll-to-bottom-on-input t))
+    (setq eshell-history-size                    10000
+	   eshell-buffer-maximum-lines 10000
+	   eshell-hist-ignoredups t
+	   eshell-scroll-to-bottom-on-input t))
 
-(use-package eshell-git-prompt)
+  (use-package eshell-git-prompt)
 
-(use-package eshell
-   :hook (eshell-first-time-mode . holy/configure-eshell)
-   :config
-   (with-eval-after-load 'esh-opt
-      (setq eshell-destroy-buffer-when-process-dies t)
-      (setq eshell-visual-commands '("htop" "zsh" "vim" "less" "more")))
-   (eshell-git-prompt-use-theme 'powerline))
+  (use-package eshell
+    :hook (eshell-first-time-mode . holy/configure-eshell)
+    :config
+    (with-eval-after-load 'esh-opt
+       (setq eshell-destroy-buffer-when-process-dies t)
+       (setq eshell-visual-commands '("htop" "zsh" "vim" "less" "more")))
+    (eshell-git-prompt-use-theme 'powerline))
 
 #+end_src
 ** Magit
@@ -706,7 +741,7 @@ sub menu가 보이고 조건에  맞는 파일을 mark한다.
 - shift-t
 => 파일의 timestamp를 변경할 수 있다.
 - shift-o
-=> 파일의 owner를 변경
+ 파일의 owner를 변경
 - shift-g
 =>파일의 group을 변경
 - shift-s
@@ -748,5 +783,283 @@ sub menu가 보이고 조건에  맞는 파일을 mark한다.
      (define-key dired-mode-map "H" 'dired-hide-dotfiles-mode))
 #+end_src
 * Applications
-** Some App
+** email(Mu4e)
+:LOGBOOK:
+- Note taken on [2021-05-13 Thu 09:30] \\
+  - [Gmail]과 imap동기화의 문제점
+  Gmail은 mail을 folder로 관리하지 않는다. label로 관리한다. 오직 All Mails라는 하나의 폴더만 있는것 같다. mail이 들어오면 inbox라는 tag를 메일에 붙인다. 그리고 필요에 따라  important, starred,snoozed...같은  tag를 붙일 수 있다.  하나의 메일에는 여러개의 tag가 붙을 수 있는 것이다. 이것은  마치 하나의 메일이 여러개의 폴더에 있는 것과 같은 효과를 준다. 근데 이게 imap을 사용할 때 문제가 된다. imap은 폴더로 관리하고 각 메일은 한개의 folder에만 있기 때문이다. 그래서 gmail과 imap을 동기화하기란 쉽지 않다.
+  
+  - All Mail에 대해서(Archiving)
+  다른 mail server들은 mail을 폴더별로 관리해서 들어오는 mail은 inbox에 넣는다. filtering해서 spam은 spam폴더에, inbox에서 버리는 메일은 trash폴더에, 메일을 작성하다가 그만두면 draft라는 폴더에, 메일을 보내면 sent 폴더에 넣는다. 그런데 gmail에는 다른곳에 없는 All Mails라는 폴더가 있다. 그리고 inbox, sent,draft...같은 것들은 그냥 label이다. 즉 메일이 중복해서 존재한다. inbox에 있는 mail은 All Mails라는 곳에도 있고, sent에 있는 mail도 All Mails, important,snooze,사용자가 만든 label에도 있는 것이다.
+  
+  - [imap과 Gmail]을 어떻게 동기화 할것인가?
+  Gmail에서 email은 모두 label로 관리된다. 반면 imap은 폴더로 관리된다. Gmail에서는 하나의 email이 여러개의  label에 있을 수 있지만, imap은 하나의 folder에만 있게 된다. 이를 관리방법이 다른 이 두개를 어떻게 동기화 하고 사용할 것인가?
+  1) [Gmail 기준으로 관리하자]- label을 폴더로 관리하자.
+  즉 gmail의 label을 imap의 폴더로 mapping하는 것이다. gmail에서 메일을 작성하고, 보내고, 받고 할때 모든 mail은 label되서 관리된다. email을 보내면 sent라는 label,All mails에서 볼수 있다. important label도 붙였다면 important label에서도 볼 수 있다. 이것을 그대로 imap으로 가져오면 important 폴더, All mails폴더,sent라는 폴더에는 동일한 email이 있을 것이다. imap이 단지 보기만 한다면 이건 문제 없다. 근데 imap에서 mail을 작성해서 보낸다면, sent라는 폴더에만 email이 있을 것이다. 이것을 동기화 하면 gmail에서는 sent에만 있고, all mails에는 없는 현상이 발생한다. 이렇게 되면 gmail에서 보기 너무 힘들어버린다. 또한 imap에서는 중복된 email이 너무 많아진다.
+  
+  2) [imap 기준으로 관리하자] - All mails, trash,spam만을 가져오자.
+  gmail에서 모든 mail은 3가지중에 하나다. spam이던가,trash이던가, all mails(archive)이던가... spam은 all mails에서 보이지 않는다. trash에서도 보이지 않는다. 이것을 imap에서 폴더로 만들어서 관리하는 것이다. imap과 동기화하면 gmail의 모든 mail이 imap에 오는것을 보장한다. 대신 gmail에서는 labeling으로 email을 관리하지 않을 것이다. imap에서 mail을 보낼경우, 보낸메일은 어디로 저장하는가? 선택할 수 있는건, All mails와 spam,trash인데, All mails로 할 수 밖에 없다. 그런데 이렇게 하면 gmail에서 내가 보낸 메일을 확인할때 all mails로 봐야 하는데, 이게 보낸 메일인지 받은메일인지 구분할 수가 없다.
+  
+  3) [Imap과 Gmail을 조합해서 관리하자]
+  동기화할 폴더를 All Mails, Sent,draft, trash, spam으로 정하자. Gmail에선 Sent,draft 메일들은 모두 All mails에 있다. 그럼 imap으로 다운하면 중복되는 email이 있을 것이다. 하지만 imap을 사용할때는 편리하다. 받은 메일은 All mails에서 확인하면 되고, 메일을 작성하다가 멈췄을때는 draft로 보내고 보낸 메일은 sent로 보내면 imap과 gmail에서 공통적으로 사용하는 폴더와 label이기 때문에 문제 될 것이 없다. 단점은 2가지 정도 된다. 첫 번째로 imap에서 mail이 중복되는 문제, 두 번째로 imap에서 메일을 보내면 sent에 저장된다. 그리고 sent에 있던건 gmail의 sent에 동기화 된다. 따라서 gmail에서 보면 All mails에는 보낸 메일이 보이지 않는다는 것이다. 반면 gmail에서 mail을 보내면 sent와 All mails에 있고 동기화 하면 imap에서는 All mails와 sent에 둘다 있게 되는 것이다. imap으로 볼때 어떤 mail은 sent에도 있고 All mails에도 있고, 어떤건 sent에만 있는것을  확인할 수 있다. 또한 gmail에서 볼때도 어떤 mail은 sent에도 있고 All mails에도 있고, 어떤건 sent에만 있는것을 확인할 수 있다. 하지만, 이것은 감내해야 할듯 하다.
+- Note taken on [2021-05-12 Wed 02:31] \\
+  다음과 같은 에러가 발생할 수 있다.
+  IMAP command 'AUTHENTICATE PLAIN <authdata>' returned an error: NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)
+  Authentication Error는 ID와 PW가 제대로 기술이 안되어 있을경우, 혹은 gmail server에서 web browser가 아닌 3rd party app에서 접근하는것을 막았을경우에 발생한다. 이 경우는 gmail에서 mail이 전송된다. 메일에 있는 link를 누르면, less secure app access를 turn on시킬수 있다. 이렇게 하면 접근이된다.
+- Note taken on [2021-05-11 Tue 19:52] \\
+  RSA통신: public key와 private key를 사용해서 서로간의 통신을 하기 위해서는 한쪽이 public key를 보내야 한다. 그러기 위해서 인증서에 public key를 넣어서 보낸다.  이런 통신을 이용하는 경우는 대표적으로 gmail과 같은 mail provider가 해당한다. 
+  gmail 통신방법:  client와 gmail은 ssl을 사용한 imap이나 pop을 사용해서  mail을 down받거나 보내는 작업을 한다. server에 해당하는 gmail이 public key와 private key를 만든다. public key를 이용해서 인증서도 만든다. client가 gmail에 연결을 시도해서 인증서를 다운받고 받은  그 다음 부터 gmail의 public key를 사용해서 통신한다.
+  
+  gmail의 인증서를 얻는 방법:
+  $ mkdir ~/.cert
+  $ openssl s_client -connect some.imap.server:port -showcerts 2>&1 < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sed -ne '1,/-END CERTIFICATE-/p' > ~/.cert/some.imap.server.pem
+  
+  github 통신방법: 사용자가 public key와 private key를 만든다. public key를 github에 넣어두고 통신한다.
+- Note taken on [2021-05-11 Tue 18:40] \\
+  SSL: SSL은 secure socket layer다. 예전에는 tcp+ip를 사용하는 socket으로 programming해서 통신을 했다. secure socket은 이 tcp+ip에 보안요소를 곁들인 계층 혹은 socket으로 보면 된다. 흔히 우리는 domain 주소를 실제 주소로 비유하고, dns서버는 주소를 입력하면 전화번호를 알려주는 기능을 하고, tcp+ip에서는 전화번호로 통신한다고 말한다.  ip주소가 server의 전화번호이고, port가 내선번호라고 한다. 이렇게 전화번호와 내선번호로 통화를 하면 도청의 위험이 있어서 전화내용을 암호화할 필요가 생겼다. 그래서 생긴게 SSL이다. SSL은 전화걸기 전에 우선 상대방의 공개키를 내가 알고 있던지 아니면, 나의 공개키를 상대방한테 줘야 한다. 그래서 받은 공개키를 통해서 암호화해서 통신을 한다.
+  
+  인증서: 공개키를 상대방한테 보낼때 단지 key만 보내면 안된다. 예를들어, 국세청에서 저희하고 통신할려면 저희 공개키를 보낼테니 그걸로 암호화해서 보내세요.납세자에게 보냈다고 하자. 납세자는 국세청인줄 믿고 암호화해서 서로 메일이나 chat을 하면 안된다. 해커가 자신의 공개키를 국세청의 공개키라고 속일수 있기 때문이다. 그래서 인증서는 공개키가 국세청의 공개키가 맞다는 것을 보장해준다.
+- Note taken on [2021-05-11 Tue 17:03] \\
+  GPG: RSA방식의 암호화를 사용하게 해주는 tool이다. 2개의 key를 만든다. 공개키와 비밀키인데,  단순하게 열쇠와 자물쇠 2개를 만든다고 보면 된다. 통신하게 될 2개의 당사자들은 비밀키와 공개키를 이용해서 통신한다고 보면 된다. 옛날의 암호화 방식이나, password방식은 일종의 server가 password파일 목록을 가지고 있고 사용자가 입력한 password가 맞는지 안맞는지 서버에서 판단했다. 이것은 현관문의 door key와 비슷하다. 출입하는 사람은 비밀번호를 입력하고 문에는 비밀번호 목록을 가지고 있는 방식이다. 반면에 RSA는 개개인이 열쇠와 자물쇠를 모두 만들어서 자물쇠를 주는 방식이다. 그런데 둘다 key라고 부르는 이유는 둘다 암호화 복호화에 사용되는 key로 동작하기 때문이다. private key로 암호화하면 public key로 해독하고 public key로 암호화하면 private key로 복호화 한다.
+:END:
+:설정:
+- [X] isync 설치
+local에서 gmail과 sync를 할 프로그램을 설치한다. brew install isync
+- [X] ~/.mbsyncrc를 설정한다. 여길 [[file:~/.mbsyncrc][참조]]
+  - 여기서 passCmd와 certificateFile은 설명이 필요하다.
+  - pass는 password를 직접기록한다. passCmd는 직접기록하는 대신에 명령어를 입력한다. 
+    명령어는 textfile에 password를 입력해서 저장한 후 cat명령으로 읽는 방식으로도 할수 있고 gpg로 encrypt시킨 후에 decrypt하는 명령어를 넣을 수도 있다. 간단히 난 cat방식을 사용했다.
+    ex) "cat ~/.oh-no-insecure-password"
+    ex) gpg --quiet --for-your-eyes-only --no-tty --decrypt ~/.passwords/gmail.gpg
+    - 인증서는 logbook에 적었는데, openssl을 통해서 gmail에 접속하면 gmail의 public key가 담긴 인증서를 얻을 수 있다. 얻은 인증서를 저장한 후 적용하면 된다. 
+    - setting과정에서 접속문제가 발생하는데, LOGBOOK을 참조해서 해결한다.
+      - two pass 인증이 아니면 less secure app을 turn on 시키면 되는 문제다. 여길 [[https://myaccount.google.com/lesssecureapps?pli=1&rapt=AEjHL4NRy2QurRqh0BmU3kcdUfG5G4FrcX8MFp2C_kRTSr_DuaGgZbVKURKyX--wvaGaMyzfuHpm8JM_II814KIMzJzDK11oEw][참조]]
+      - two pass인증 에러는 Application-specific password required란 에러나 나온다.
+    - maildir은 All mails, sent, draft,trash를 동기화한다.
+- [X] gmail setting을 한다. 여길 [[https://support.google.com/mail/answer/7126229?hl=en][참조]]
+  [label settings]
+  - label에선 imap에선 all mails,sent,draft,trash만 list에 보이게 하고, imap에서도 그것만 보이게 한다.
+  [imap pop settings]
+  - Imap을 enabled한다.
+  - “Auto-expunge off”
+  - “Move the message to the trash”
+- [X] mbsync -a 를 실행한다. 
+  - ~/Mails/폴더에 가서 [Gmail]Sent Mail, [Gmail]Drafts...와 같은 폴더가 있는지 확인해 본다.
+- [X] mu를 설치한다. (brew install mu)
+  - mu를 system에 설치하면, mu4e도 설치가 된다. emacs에서 mu4e를 load할때는 아래 path를 사용해서 load한다.
+- [X] mu init를 실행(mu init --maildir=~/Mail --my-address=holy.frege@gmail.com)
+- [X] mu index를 실행
+  - index는 sorting한다고 보면 된다.  xapian이란 db를 사용하기 때문이다.
+- [X] mu4e를 설치한다.(emacs에서 mu4e는 system에서 mu를 설치하면 mu4e가 설치된다.) 그리고 이미 설치된 mu4e를  설정한다.
+  - 설치할 때 mu4e-meta.el이 newer than oldfile이라고 나오면 해당 load-path로가서 mu4e-meta.elc를 지우고 다시 byte compile한다.
+  - 10분마다 자동 sync하기로 했다.
+  - mu4e [[https://www.djcbsoftware.nl/code/mu/mu4e/index.html][공식문서]]
+- [X] mu4e 실행
+  - j o 를 누르고 maildir에서 [Gmail]/Sent Mail, [Gmail]Drafts, [Gmail]Trash,[Grmail]/All mails 이외의 것이 있나 확인한다. 왜냐면 우리는 imap에서 이 4개의 폴더로 email을 관리하고 이 폴더들이 gmail과 동기화해서 web에서 gmail을 볼때 보여야 하기 때문이다.
 
+  - C-c C-u: mbsync -a를 실행해서 update여부를 확인한다. mu4e main화면에 u를 눌러도 된다.
+- [X] Mu4e context(account) 설정
+
+:END:
+#+begin_src emacs-lisp
+  (use-package mu4e
+    :ensure nil
+    ;; :defer 20
+    ;; :load-path "/usr/local/share/emacs/site-lisp/mu/mu4e/"
+    ;; brew를 사용한 경우 아래에 있다.
+    :load-path "/usr/local/Cellar/mu/1.4.15/share/emacs/site-lisp/mu/mu4e/"
+    ;; :defer 20 ; Wait until 20 seconds after startup
+    :config
+    (require 'mu4e-org)
+    (setq org-agenda-files '("~/org/Mail.org"))
+
+    (setq mail-user-agent 'mu4e-user-agent)
+    ;; This is set to 't' to avoid mail syncing issues when using mbsync
+    (setq mu4e-change-filenames-when-moving t)
+    ;; Refresh mail using isync every 10 minutes
+    (setq mu4e-update-interval (* 10 60))
+    (setq mu4e-get-mail-command "mbsync -a")
+    (setq mu4e-maildir "~/Mail")
+
+    (setq message-send-mail-function 'smtpmail-send-it)
+
+
+    (setq mu4e-contexts
+       (list
+       ;; Work account
+       (make-mu4e-context
+        :name "public_mail"
+        :match-func
+          (lambda (msg)
+            (when msg
+              (string-prefix-p "/Gmail" (mu4e-message-field msg :maildir))))
+        :vars '((user-mail-address . "holy.frege@gmail.com")
+                (user-full-name    . "Holy Frege work_mail")
+                (smtpmail-smtp-server  . "smtp.gmail.com")
+                (smtpmail-smtp-service . 465)
+                (smtpmail-stream-type  . ssl)
+                (mu4e-compose-signature .
+                (concat 
+                     "Holy Frege \n\n"
+                     "seize the time\n"
+                     "test signature\n"))
+                (mu4e-drafts-folder  . "/Gmail/[Gmail]/Drafts")
+                (mu4e-sent-folder  . "/Gmail/[Gmail]/Sent Mail")
+                (mu4e-refile-folder  . "/Gmail/[Gmail]/All Mail")
+                (mu4e-trash-folder  . "/Gmail/[Gmail]/Trash")))
+
+       ;; Personal account
+       (make-mu4e-context
+        :name "Private_mail"
+        :match-func
+          (lambda (msg)
+            (when msg
+              (string-prefix-p "/Fastmail" (mu4e-message-field msg :maildir))))
+        :vars '((user-mail-address . "holy_frege@fastmail.com")
+                (user-full-name    . "Holy Frege Personal_mail")
+                (smtpmail-smtp-server  . "smtp.fastmail.com")
+                (smtpmail-smtp-service . 465)
+                (smtpmail-stream-type  . ssl)
+                (mu4e-compose-signature .
+                (concat 
+                     "Holy Frege \n\n"
+                     "grap the time\n"
+                     "test2 signature\n"))
+                (mu4e-drafts-folder  . "/Fastmail/Drafts")
+                (mu4e-sent-folder  . "/Fastmail/Sent")
+                (mu4e-spam-folder  . "/Fastmail/Spam")
+                (mu4e-refile-folder  . "/Fastmail/Archive")
+                (mu4e-trash-folder  . "/Fastmail/Trash")))))
+
+   (setq org-capture-templates
+     `(("m" "Email Workflow")
+       ("mf" "Follow Up" entry (file+olp "~/org/Mail.org" "Follow Up")
+          "* TODO Follow up with %:fromname on %a\nSCHEDULED:%t\nDEADLINE:    %(org-insert-time-stamp (org-read-date nil t \"+2d\"))\n\n%i"  :immediate-finish t)
+       ("mr" "Read Later" entry (file+olp "~/org/Mail.org" "Read Later")
+          "* TODO Read %:subject\nSCHEDULED:%t\nDEADLINE: %(org-insert-time-stamp (org-read-date nil t \"+2d\"))\n\n%a\n\n%i"  :immediate-finish t)))
+
+   (defun holy/capture-mail-follow-up (msg)
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "mf"))
+
+   (defun holy/capture-mail-read-later (msg)
+      (interactive)
+      (call-interactively 'org-store-link)
+      (org-capture nil "mr"))
+
+      ;; Add custom actions for our capture templates
+   (add-to-list 'mu4e-headers-actions
+       '("follow up" . holy/capture-mail-follow-up) t)
+   (add-to-list 'mu4e-view-actions
+       '("follow up" . holy/capture-mail-follow-up) t)
+   (add-to-list 'mu4e-headers-actions
+       '("read later" . holy/capture-mail-read-later) t)
+   (add-to-list 'mu4e-view-actions
+       '("read later" . holy/capture-mail-read-later) t)
+
+   (setq mu4e-maildir-shortcuts
+    '((:maildir "/Gmail/Inbox"    :key ?i)
+      (:maildir "/Gmail/[Gmail]/Sent Mail" :key ?s)
+      (:maildir "/Gmail/[Gmail]/Trash"     :key ?t)
+      (:maildir "/Gmail/[Gmail]/Drafts"    :key ?d)
+      (:maildir "/Gmail/[Gmail]/All Mail"  :key ?a))))
+      ;; run mu4e in the background to sync mail periodically
+    ;; (mu4e t)  
+    ;; (setq user-mail-address "holy.frege@gmail.com")
+    ;; (setq smtpmail-default-smtp-server "smtp.gmail.com")
+    ;; (setq smtpmail-smtp-server "smtp.gmail.com")
+    ;; (setq smtpmail-smtp-service 587))
+
+#+end_src
+:smtp설정:
+- 설정에 대한 story
+gmail, fastmail 모두 smtp를 지원한다. server, service(port), stream(ssl)등은 gmail이나 fastmail에서 찾아보면 자세한 문서가 있다. 대동 소이하다. smtp로 접속하면 매번 login을 해야 한다. username과 password를 입력해야 한다. 그래서 login을 자동으로 해주는     (setq message-send-mail-function 'smtpmail-send-it)을 기술 한다. 이건 .authinfo라는 파일에 기술된 id와 pw을 자동으로 입력해준다. .authinfo는 text file이라서 보안에 취약하기 때문에 gpg로 암호화한다. gpg --generate-all-key를 하면 public key와 private key를 만들 수 있다. 만들때 pass phrase를 입력해서 key에 대한 접근을 쉽게 할 수 있다. 여튼 .authinfo에 규정에 맞는 id,pw를 입력하고  gpg로 encrypt하면 된다. id와 pw는 fastmail의 경우 id의 경우 id만 입력하진 않는다. 그리고 password를 app password를 사용한다. 반면 gmail은 id와 pw 모두 web에서 login할때와 동일하다. Imap에서 mail을 다운받을 때 mbsync를 사용했고, 거기에도 logic(access)해야 하는데, . mbsyncrc에 id와 pw를 명기하는데, 그 때도 fastmail은 app password를 사용했었다.
+:end: 
+#+begin_src emacs-lisp
+  (use-package org-mime
+    :ensure t
+    :config
+    (setq org-mime-export-options '(:section-numbers nil
+                                    :with-author nil
+                                    :with-toc nil))
+    ;; (add-hook 'message-send-hook 'org-mime-htmlize)
+    (add-hook 'message-send-hook 'org-mime-confirm-when-no-multipart)
+
+    (add-hook 'org-mime-html-hook
+       (lambda ()
+          (org-mime-change-element-style
+           "pre" (format "color: %s; background-color: %s; padding: 0.5em;"
+                         "#E6E1DC" "#232323"))))
+  )
+#+end_src
+:org_with_email:
+email의 body는 plain text이다. 이것을 html포맷으로 바꿀 수 있다. html포맷으로 바꾼다는 것은 link를 사용할 수 있고, image,code block, formatted text를 사용할 수 있다는 장점이 있다.
+
+org-mime의 여러 함수를 사용해서 org와 html관련 여러 처리가 가능하다.
+
+1) mu4e에서 org 문서 작성후 htmlize해서 보내기
+   - mu4e Compose mail에서 org로 글 작성 -> org-mime-htmlize해서 보낸다.
+   - mu4e Compose mail에서 editer buffer로 org buffer를 open한다.
+     M-x org-mime-edit-mail-in-org-mode를 실행하면 org buffer가 생긴다. 더많은 org 기능을 사용할 수 있다. 다 작성후에 C-c C-c를 누르고 org-mime-htmlize해서 보낸다.
+
+2) org-mime-org-buffer-htmlize
+   - org buffer를 html로 변경한다. org buffer에서 M-x org-mime org-buffer-htmlize 하면 compose창이 뜨고 바로 email로 전송할 수 있게 된다. org-mime-org-buffer-htmlize는 단지 org buffer를 html buffer로 변환했기 때문에 단지 plain buffer라고 한다.  그래서 mu4e buffer가 갖는 기능들, 예를 들면 email address입력시 자동 입력이 안되는 것이 있을 수 있다고 한다. 이것을 해주기 위해서 M-x mu4e-compose-mode로 바꿔야 한다고 하는데, 내경우는 그럴 필요가 없었다.
+
+3) org-mime-org-subtree-htmlize
+   - org mode의 heading은 그 자체가 하나의 subtree다. org buffer에서 하나의 heading에 cursor를 두고 M-x org-mime-org-subtree-htmlize를 하면 해당 헤더를 title로 하는  메일로 보낼 수 있다.
+
+4) org buffer를 htmlize한 후 email 보낼때 문제점
+   - section이 보여서 이상하다.
+   - toc이 보여서 이상하다.
+   - author가 보여서 이상하다. 
+=> 이것을 해결하기 위해서 org-mime-export-option을 추가한다.
+
+5) org-mime-confirm-when-no-multipart
+mu4e에서 작성하는 text는 plain text다. org로 작성해도 plain text다. 다양한 기능을 사용하는 html로 바꾸기 위해서는 매번 mail을 작성하고 org-mime-htmlize를 해줘야한다. 이것을 자동으로 할수도 있다. 하지만, 가끔은 plain text를 필요로 하는 경우가 있기 때문에 경고창만 보내고 수동으로 org-mime-htmlize를 하는 방식을 추천한다.
+:end:
+:org-capture_mail:
+[[https://github.com/daviwil/emacs-from-scratch/blob/master/show-notes/Emacs-Mail-05.org][참조]]
+- mu4e-org(org capture %a)
+mail도 해야할 일 list에 넣어서 관리할 수 있다. org mode라는게 원래 orgnize에서 왔기 때문에, 즉 일정관리다. 그중 email도 관리 대상이 될 수 있다. mail을 todo 리스트로 넣어서 관리할 수있다. 이렇게 하기위해서는 mu4e의 헤더뷰(mail list)에서 특정 메일에 cursor를 올려놓고 org-capture를 하면 todo list를 만든다.(%a)
+org-capture로 만들어진 todo 가 저장될 곳은  ~/Org/Mail.org다. Org관련한 문서는  Org-directory라는 변수에 지정할 수 있는데, 지정하게 되면 Org관련 명령에서 Org문서 관련 참조가 해당 디렉토리에서 찾게된다.
+
+- org capture %i
+org-capture에서 %i를 넣으면 mu4e 헤더뷰에서 메일을 읽고 특정 문장을 block으로 지정한후 org-capture를 하면 해당 block이 todo list에 들어간다.
+
+- 여러가지 option
+%:subject
+%:from
+%:fromname
+%:to,%:toname
+%:date 
+
+- schedule과 deadline
+schedule은 to do time, deadline은 to be done time이다. 스케쥴은 시작일이라고 보면 된다. project가 6월3에 스케쥴되었다는건 그때 시작한다는 뜻이다. 생일축하 파티가 6월 9일이면 그 때 시작한다는 것이다. 반드시 deadline이 있는 건 아니다. project나 task에 따라 어떤 것들은 schedule만 있고, 어떤 것은 deadline만 있고, 또 다른 어떤 것은 schedule과 deadline이 같이 있다.
+1) schedule: %t
+2) deadline: org-read-date란 함수를 사용해서 자동으로 +2일에 끝나게 설정할 수 있다.
+
+- agenda file에 추가
+org/mail.org를 agenda file에 추가해야만 agenda로 관리 할 수 있다.
+
+- quick action
+mu4e에서 mail을 읽고 이것을 해야할일(todo)라고 판단하면 org-capture를 실행해서 org/mails.org의 todo list로 넘기는 작업을 했었는데, header view(mail list)에서 간단히 제목만 보고 to do list로 넘길수 있다. 메일을 읽지않고도 메일 제목만 보고 해야 할일로 넘길 수 있다는 것이다. 그런데 보통의 처리과정은 다음과 같다. 오늘 메일을 다 읽는다. 그리고 header view에서 처리한다. 이렇게 header view에서 처리하기 위해서는 immedietly finish를 세팅해야 한다.
+ :end:
+** org-alert
+#+begin_src emacs-lisp
+  ;; (use-package alert
+  ;;   :ensure t)
+  ;; (use-package org-alert
+  ;; :custom (alert-default-style 'notifications)
+  ;; :config
+  ;; (setq org-alert-interval 300
+  ;;       org-alert-notification-title "org alert reminder!")
+  ;; (org-alert-enable))
+#+end_src
+** org presentation
+#+begin_src emacs-lisp
+;(use-package org-tree-slide
+;  :custom
+;  (org-image-actual-width nil))
+
+#+end_src
